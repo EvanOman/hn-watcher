@@ -62,13 +62,3 @@ Use the `view_hn_watcher_logs.sh` script to check service logs:
 The service runs every 15 minutes by default. To modify this, edit the `OnCalendar` setting in `/etc/systemd/system/hn_watcher.timer`.
 
 Comments are stored in `hn_comments.db` using SQLite. The database path can be configured when initializing the `CommentDatabase` class.
-
-## Requirements
-
-- Python 3.10 or higher
-- `requests` library
-- systemd (Linux)
-
-## License
-
-[Add your license here]
