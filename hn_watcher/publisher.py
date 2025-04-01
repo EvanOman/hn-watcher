@@ -98,10 +98,7 @@ class PikaPublisher:
             if not self.is_connected:
                 credentials = pika.PlainCredentials(self.username, self.password)
                 self._connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(
-                        host=self.host,
-                        credentials=credentials
-                    )
+                    pika.ConnectionParameters(host=self.host, credentials=credentials)
                 )
                 self._channel = self._connection.channel()
                 self._channel.exchange_declare(

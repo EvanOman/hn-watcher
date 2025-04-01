@@ -38,7 +38,7 @@ cat <<EOF | sudo tee "$TIMER_FILE" >/dev/null
 Description=Timer for ${SERVICE_NAME}
 
 [Timer]
-OnCalendar=*:0/15
+OnCalendar=*:0/2
 Persistent=true
 
 [Install]
