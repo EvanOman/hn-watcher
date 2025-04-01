@@ -33,6 +33,8 @@ class HNContextProvider:
         rabbitmq_exchange = config["rabbitmq"]["exchange"]
         rabbitmq_exchange_type = config["rabbitmq"]["exchange_type"]
         rabbitmq_durable = config["rabbitmq"]["durable"]
+        rabbitmq_username = config["rabbitmq"]["username"]
+        rabbitmq_password = config["rabbitmq"]["password"]
         request_delay = config["api"]["request_delay"]
         base_url = config["api"]["base_url"]
 
@@ -44,6 +46,8 @@ class HNContextProvider:
             exchange=rabbitmq_exchange,
             exchange_type=rabbitmq_exchange_type,
             durable=rabbitmq_durable,
+            username=rabbitmq_username,
+            password=rabbitmq_password,
         )
 
         return HNContext(

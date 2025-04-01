@@ -10,6 +10,8 @@ host = "localhost"
 exchange = "hackernews"
 exchange_type = "topic"
 durable = true
+username = "admin"
+password = "admin"
 
 [api]
 # Hacker News API settings

@@ -37,6 +37,8 @@ class PikaPublisher:
         exchange: str = "hackernews",
         exchange_type: ExchangeType = ExchangeType.topic,
         durable: bool = True,
+        username: str = "guest",
+        password: str = "guest",
     ):
         """
         Initialize the Pika publisher.
@@ -46,11 +48,15 @@ class PikaPublisher:
             exchange: Exchange name
             exchange_type: Exchange type (topic, direct, fanout, etc.)
             durable: Whether the exchange should be durable
+            username: RabbitMQ username
+            password: RabbitMQ password
         """
         self.host = host
         self.exchange = exchange
         self.exchange_type = exchange_type
         self.durable = durable
+        self.username = username
+        self.password = password
         self._connection: Optional[BlockingConnection] = None
         self._channel: Optional[BlockingChannel] = None
         self.avro_schema = avro.schema.parse(json.dumps(self.COMMENT_SCHEMA))
@@ -90,8 +96,12 @@ class PikaPublisher:
         """
         try:
             if not self.is_connected:
+                credentials = pika.PlainCredentials(self.username, self.password)
                 self._connection = pika.BlockingConnection(
-                    pika.ConnectionParameters(host=self.host)
+                    pika.ConnectionParameters(
+                        host=self.host,
+                        credentials=credentials
+                    )
                 )
                 self._channel = self._connection.channel()
                 self._channel.exchange_declare(
