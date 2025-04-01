@@ -1,0 +1,17 @@
+# HN Watcher Configuration
+
+[database]
+# Path to the SQLite database file
+path = "hn_comments.db"
+
+[rabbitmq]
+# RabbitMQ connection settings
+host = "localhost"
+exchange = "hackernews"
+exchange_type = "topic"
+durable = true
+
+[api]
+# Hacker News API settings
+request_delay = 0.1
+base_url = "https://hacker-news.firebaseio.com/v0" 

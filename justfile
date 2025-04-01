@@ -36,14 +36,15 @@ setup:
 
 # Run code quality checks
 check:
-    ruff check .
-    ruff format --check .
+    ruff check --exclude tests .
+    ruff format --check --exclude tests .
     uv run mypy hn_watcher
 
 # Format code
 fmt:
-    ruff check --fix .
-    ruff format .
+    ruff check --fix --exclude tests .
+    ruff format --exclude tests .
+    ruff check --select I --fix
 
 # Clean temporary files
 clean:
@@ -53,3 +54,11 @@ clean:
     rm -rf .pytest_cache/
     rm -rf dist/
     rm -rf build/
+
+# Run unit tests
+test:
+    uv run pytest
+
+# Run unit tests with coverage
+test-cov:
+    uv run pytest --cov=hn_watcher tests/

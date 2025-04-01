@@ -1,64 +1,56 @@
 # HN Watcher
 
-A systemd service that monitors and stores new comments from Hacker News posts.
+A utility for watching and publishing Hacker News comments.
 
 ## Features
 
-- Monitors specified Hacker News posts for new comments
-- Stores comments in a SQLite database to avoid duplicates
-- Runs as a systemd service every 15 minutes
-- Includes utility scripts for managing and monitoring the service
+- Fetch comments from Hacker News items
+- Store comments in a SQLite database
+- Publish new comments to RabbitMQ using Avro encoding
 
 ## Installation
 
-1. Clone this repository
-2. Install dependencies: `uv sync`
-```
-3. Run the setup script to create the systemd service:
 ```bash
-./setup_systemd.sh
+pip install -r requirements.txt
 ```
 
-## Usage
+## Usage Example
 
-### Managing the Service
-
-Use the `manage_systemd.sh` script to control the service:
+Watch for new comments on a Hacker News story and publish them to RabbitMQ:
 
 ```bash
-# Check service status
-./manage_systemd.sh
-
-# Pause the service
-./manage_systemd.sh -p
-
-# Resume the service
-./manage_systemd.sh -r
-
-# Show detailed status
-./manage_systemd.sh -s
+python -m hn_watcher 36694815 --db-path=hn_comments.db --rabbit-host=localhost --exchange=hackernews
 ```
 
-### Viewing Logs
+Replace `36694815` with the ID of the Hacker News item you want to watch.
 
-Use the `view_hn_watcher_logs.sh` script to check service logs:
+## Development
+
+### Running Tests
+
+Run the tests using pytest:
 
 ```bash
-# Show last 50 log entries
-./view_hn_watcher_logs.sh
+# Using pytest directly
+pytest
 
-# Follow logs in real-time
-./view_hn_watcher_logs.sh -f
+# Or using the justfile
+just test
 
-# Show last 100 entries
-./view_hn_watcher_logs.sh -n 100
-
-# Show logs since a specific time
-./view_hn_watcher_logs.sh -s "2 hours ago"
+# With coverage
+just test-cov
 ```
 
-## Configuration
+### Type Checking
 
-The service runs every 15 minutes by default. To modify this, edit the `OnCalendar` setting in `/etc/systemd/system/hn_watcher.timer`.
+Run mypy type checking:
 
-Comments are stored in `hn_comments.db` using SQLite. The database path can be configured when initializing the `CommentDatabase` class.
+```bash
+just check
+```
+
+## Requirements
+
+- Python 3.8+
+- RabbitMQ server
+- Dependencies listed in pyproject.toml

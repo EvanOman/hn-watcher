@@ -62,7 +62,9 @@ class CommentDatabase:
             "INSERT OR IGNORE INTO comments (id, parent_id, by, time, text, raw_data) VALUES (?, ?, ?, ?, ?, ?)",
             (
                 comment.get("id"),
-                comment.get("parent"),
+                comment.get(
+                    "parent_id", comment.get("parent")
+                ),  # Try parent_id first, fall back to parent
                 comment.get("by"),
                 comment.get("time"),
                 comment.get("text", ""),

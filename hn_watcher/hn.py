@@ -5,6 +5,8 @@ from typing import Any, Optional, Protocol
 import requests
 
 from hn_watcher.db import CommentDatabase
+from hn_watcher.models import Comment
+from hn_watcher.publisher import PikaPublisher
 
 
 class ApiClient(Protocol):
@@ -35,6 +37,7 @@ class HNContext:
         self,
         api_client: ApiClient,
         db: CommentDatabase,
+        publisher: PikaPublisher,
         request_delay: float = 0.1,
         base_url: str = "https://hacker-news.firebaseio.com/v0",
     ):
@@ -44,13 +47,23 @@ class HNContext:
         Args:
             api_client: Client for making HTTP requests
             db: Database for storing comments
+            publisher: Message publisher for sending comments to a message broker
             request_delay: Time to wait between API requests in seconds
             base_url: Base URL for the Hacker News API
         """
         self.api_client = api_client or RequestsClient()
         self.db = db
+        self.publisher = publisher
         self.request_delay = request_delay
         self.base_url = base_url
+
+    def close(self):
+        """Close all connections."""
+        if self.db:
+            self.db.close()
+
+        if self.publisher:
+            self.publisher.close()
 
 
 class HackerNewsAPI:
@@ -83,9 +96,7 @@ class HackerNewsAPI:
 
         return result
 
-    def get_comments(
-        self, item_id: int, max_depth: int = sys.maxsize
-    ) -> list[dict[str, Any]]:
+    def get_comments(self, item_id: int, max_depth: int = sys.maxsize) -> list[Comment]:
         """
         Retrieve comments for a given Hacker News item with optional depth limit.
 
@@ -107,7 +118,7 @@ class HackerNewsAPI:
         item: dict[str, Any],
         max_depth: int = sys.maxsize,
         current_depth: int = 0,
-    ) -> list[dict[str, Any]]:
+    ) -> list[Comment]:
         """
         Recursively collect comments from an item up to a specified depth.
 
@@ -127,26 +138,27 @@ class HackerNewsAPI:
 
         # Retrieve each comment by its ID
         for kid_id in item["kids"]:
-            comment = self.get_item(kid_id)
-            if not comment:
+            comment_dict = self.get_item(kid_id)
+            if not comment_dict:
                 continue
 
             # Skip deleted or dead comments
-            if comment.get("deleted") or comment.get("dead"):
+            if comment_dict.get("deleted") or comment_dict.get("dead"):
                 continue
 
-            # Add to our comments list
+            # Convert to Comment model and add to our list
+            comment = Comment(**comment_dict)
             comments.append(comment)
 
             # Recursively get child comments and extend the list
             child_comments = self._get_all_comments(
-                comment, max_depth, current_depth + 1
+                comment_dict, max_depth, current_depth + 1
             )
             comments.extend(child_comments)
 
         return comments
 
-    def get_top_level_comments(self, item_id: int) -> list[dict[str, Any]]:
+    def get_top_level_comments(self, item_id: int) -> list[Comment]:
         """
         Retrieve only top-level comments for a given Hacker News item.
 
@@ -164,20 +176,21 @@ class HackerNewsAPI:
 
         # Retrieve only top-level comments by their ID
         for kid_id in item["kids"]:
-            comment = self.get_item(kid_id)
-            if not comment:
+            comment_dict = self.get_item(kid_id)
+            if not comment_dict:
                 continue
 
             # Skip deleted or dead comments
-            if comment.get("deleted") or comment.get("dead"):
+            if comment_dict.get("deleted") or comment_dict.get("dead"):
                 continue
 
-            # Add to our comments list
+            # Convert to Comment model and add to our list
+            comment = Comment(**comment_dict)
             comments.append(comment)
 
         return comments
 
-    def get_new_top_level_comments(self, item_id: int) -> list[dict[str, Any]]:
+    def get_new_top_level_comments(self, item_id: int) -> list[Comment]:
         """
         Retrieve only new top-level comments for a given Hacker News item.
         Checks the database to avoid fetching comments we've already seen.
@@ -209,19 +222,20 @@ class HackerNewsAPI:
             if db.comment_exists(kid_id):
                 continue
 
-            comment = self.get_item(kid_id)
-            if not comment:
+            comment_dict = self.get_item(kid_id)
+            if not comment_dict:
                 continue
 
             # Skip deleted or dead comments
-            if comment.get("deleted") or comment.get("dead"):
+            if comment_dict.get("deleted") or comment_dict.get("dead"):
                 continue
 
-            # Add to our comments list
+            # Convert to Comment model and add to our list
+            comment = Comment(**comment_dict)
             new_comments.append(comment)
 
             # Store in database
-            db.add_comment(comment)
+            db.add_comment(comment_dict)
 
         # Only close the DB connection if we created it
         if temp_db:

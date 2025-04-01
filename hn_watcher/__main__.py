@@ -1,31 +1,39 @@
-from hn_watcher.hn import HackerNewsAPI
+#!/usr/bin/env python3
+"""
+Command-line interface for HN Watcher.
+"""
+
+import fire  # type: ignore
+
 from hn_watcher.context import HNContextProvider
+from hn_watcher.workflow import NewCommentPublisher
 
 
-def process_comments(post_id: int, context) -> None:
+def watch_comments(post_id: int, config_path: str = "") -> None:
     """
-    Process new comments from a Hacker News post.
+    Watch for new comments on a Hacker News post and publish them to RabbitMQ.
 
     Args:
         post_id: The ID of the Hacker News post
-        context: The HN context to use
+        config_path: Path to the TOML configuration file
     """
-    api = HackerNewsAPI(context)
-    comments = api.get_new_top_level_comments(post_id)
+    # Create a context using the provider
+    context = HNContextProvider.get_default_context(config_path)
 
-    print(f"Got {len(comments)} comments")
+    # Create the workflow
+    watcher = NewCommentPublisher(context)
 
-    for comment in comments:
-        print(comment["text"])
+    try:
+        # Run once and exit
+        comments = watcher.publish_new_comments(post_id)
+        print(f"Found {len(comments)} new comments")
+
+        for comment in comments:
+            print(f"  - {comment.by}: {(comment.text or '')[:50]}...")
+    finally:
+        # Clean up resources
+        context.close()
 
 
 if __name__ == "__main__":
-    # Create a context using the provider
-    context = HNContextProvider.get_default_context("hn_comments.db")
-
-    # Process comments for a specific post
-    process_comments(43485566, context)
-
-    # Clean up resources if needed
-    if context.db:
-        context.db.close()
+    fire.Fire(watch_comments)
