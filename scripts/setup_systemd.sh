@@ -29,7 +29,7 @@ Description=Run ${SERVICE_NAME}
 User=${CURRENT_USER}
 Type=oneshot
 WorkingDirectory=${REPO_DIR}
-ExecStart=${SCRIPT_PATH} run -m hn_watcher 43243024
+ExecStart=${SCRIPT_PATH} run -m hn_watcher 43547611
 EOF
 
 # Create systemd timer file

@@ -29,7 +29,7 @@ def watch_comments(post_id: int, config_path: str = "") -> None:
         print(f"Found {len(comments)} new comments")
 
         for comment in comments:
-            print(f"  - {comment.by}: {(comment.text or '')[:50]}...")
+            print(f"  - [{comment.id}] {comment.by}: {(comment.text or '')[:50]}...")
     finally:
         # Clean up resources
         context.close()
