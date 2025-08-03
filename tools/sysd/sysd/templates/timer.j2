@@ -1,0 +1,17 @@
+[Unit]
+Description=Timer for {{ description }}
+Requires={{ service_name }}.service
+
+[Timer]
+{% if schedule_type == 'calendar' %}
+OnCalendar={{ schedule }}
+{% elif schedule_type == 'startup' %}
+OnStartupSec={{ schedule }}
+{% elif schedule_type == 'boot' %}
+OnBootSec={{ schedule }}
+{% endif %}
+Persistent=true
+RandomizedDelaySec={{ randomized_delay | default('0') }}
+
+[Install]
+WantedBy=timers.target

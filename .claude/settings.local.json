@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(uv sync:*)",
+      "Bash(./bin/sysd:*)",
+      "Bash(dos2unix:*)",
+      "Bash(uv run:*)"
+    ],
+    "deny": []
+  }
+}

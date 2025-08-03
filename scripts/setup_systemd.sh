@@ -1,4 +1,3 @@
-#!/bin/bash
 
 set -euo pipefail
 
@@ -29,7 +28,7 @@ Description=Run ${SERVICE_NAME}
 User=${CURRENT_USER}
 Type=oneshot
 WorkingDirectory=${REPO_DIR}
-ExecStart=${SCRIPT_PATH} run -m hn_watcher 43547611
+ExecStart=${SCRIPT_PATH} run -m hn_watcher 43858554 
 EOF
 
 # Create systemd timer file
@@ -38,7 +37,7 @@ cat <<EOF | sudo tee "$TIMER_FILE" >/dev/null
 Description=Timer for ${SERVICE_NAME}
 
 [Timer]
-OnCalendar=*:0/2
+OnCalendar=*:0,15,30,45
 Persistent=true
 
 [Install]

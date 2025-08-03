@@ -30,9 +30,45 @@ pause:
 resume:
     ./scripts/manage_systemd.sh -r
 
-# Setup systemd service and timer
+# Setup systemd service and timer (legacy)
 setup:
     ./scripts/setup_systemd.sh
+
+# Add a new systemd service (sysd)
+add name command schedule="*/15" description="":
+    ./bin/sysd add {{name}} "{{command}}" --schedule="{{schedule}}" --description="{{description}}"
+
+# Remove a systemd service (sysd)
+remove name:
+    ./bin/sysd remove {{name}}
+
+# List all managed systemd services (sysd)
+list:
+    ./bin/sysd list
+
+# Show service status (sysd)
+service-status name="":
+    @if [ "{{name}}" = "" ]; then ./bin/sysd status; else ./bin/sysd status {{name}}; fi
+
+# Show service logs (sysd)
+service-logs name follow="false":
+    @if [ "{{follow}}" = "true" ]; then ./bin/sysd logs {{name}} --follow; else ./bin/sysd logs {{name}}; fi
+
+# Setup HN watcher with new sysd tool
+setup-hn-watcher post_id="43858554":
+    ./bin/sysd add hn-watcher "python -m hn_watcher {{post_id}}" --schedule="*/15" --description="HN Comment Watcher for post {{post_id}}"
+
+# Test sysd tool
+test-sysd:
+    cd tools/sysd && ./test.sh
+
+# Test sysd unit tests only
+test-sysd-unit:
+    cd tools/sysd && pytest tests/test_unit.py -v
+
+# Test sysd integration tests only (requires Docker)
+test-sysd-integration:
+    cd tools/sysd && pytest tests/test_integration.py -v
 
 # Run code quality checks
 check:

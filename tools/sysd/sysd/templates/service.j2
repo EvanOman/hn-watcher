@@ -1,0 +1,36 @@
+[Unit]
+Description={{ description }}
+After=network.target
+{% if dependencies %}
+Wants={{ dependencies | join(' ') }}
+After={{ dependencies | join(' ') }}
+{% endif %}
+
+[Service]
+Type=oneshot
+User={{ user }}
+Group={{ group }}
+WorkingDirectory={{ working_dir }}
+ExecStart={{ command }}
+{% if environment %}
+{% for key, value in environment.items() %}
+Environment="{{ key }}={{ value }}"
+{% endfor %}
+{% endif %}
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ name }}
+
+# Security
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ working_dir }}
+{% if data_dirs %}
+ReadWritePaths={{ data_dirs | join(' ') }}
+{% endif %}
+
+# Restart policy for failed runs
+Restart=no
