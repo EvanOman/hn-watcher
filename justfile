@@ -64,11 +64,11 @@ test-sysd:
 
 # Test sysd unit tests only
 test-sysd-unit:
-    cd tools/sysd && pytest tests/test_unit.py -v
+    cd tools/sysd && uv run pytest tests/test_unit.py -v
 
 # Test sysd integration tests only (requires Docker)
 test-sysd-integration:
-    cd tools/sysd && pytest tests/test_integration.py -v
+    cd tools/sysd && uv run pytest tests/test_integration.py -v
 
 # Run code quality checks
 check:

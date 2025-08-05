@@ -1,11 +1,11 @@
 """Integration tests for sysd using Docker."""
 
-import pytest
-import docker
 import tempfile
 import time
-import os
 from pathlib import Path
+
+import docker
+import pytest
 
 
 @pytest.fixture(scope="session")
@@ -60,31 +60,30 @@ RUN uv venv && \
 USER root
 CMD ["/lib/systemd/systemd"]
 """
-    
+
     # Create temporary directory for build context
     with tempfile.TemporaryDirectory() as build_dir:
         # Copy sysd code to build directory
         import shutil
+
         sysd_path = Path(__file__).parent.parent
         shutil.copytree(sysd_path, Path(build_dir) / "sysd")
-        
+
         # Write Dockerfile
         with open(Path(build_dir) / "Dockerfile", "w") as f:
             f.write(dockerfile_content)
-        
+
         # Build image
         image, _ = docker_client.images.build(
-            path=str(build_dir),
-            tag="sysd-test:latest",
-            rm=True
+            path=str(build_dir), tag="sysd-test:latest", rm=True
         )
-        
+
         yield image
-        
+
         # Cleanup
         try:
             docker_client.images.remove(image.id, force=True)
-        except:
+        except Exception:
             pass
 
 
@@ -95,19 +94,19 @@ def sysd_container(docker_client, sysd_image):
         sysd_image.id,
         detach=True,
         privileged=True,
-        name=f"sysd-test-{int(time.time())}"
+        name=f"sysd-test-{int(time.time())}",
     )
-    
+
     # Wait for systemd to start
     time.sleep(3)
-    
+
     yield container
-    
+
     # Cleanup
     try:
         container.stop()
         container.remove()
-    except:
+    except Exception:
         pass
 
 
@@ -119,9 +118,9 @@ class TestSysdIntegration:
         # Add a service
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && "
-            "python -m sysd add test-service \"echo hello world\" "
-            "--schedule=\"*/15\" --description=\"Test Service\"'",
-            user="root"
+            'python -m sysd add test-service "echo hello world" '
+            '--schedule="*/15" --description="Test Service"\'',
+            user="root",
         )
         assert result.exit_code == 0
         assert b"Added service 'test-service'" in result.output
@@ -129,7 +128,7 @@ class TestSysdIntegration:
         # List services
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd list'",
-            user="root"
+            user="root",
         )
         assert result.exit_code == 0
         assert b"test-service" in result.output
@@ -138,15 +137,14 @@ class TestSysdIntegration:
         # Check service status
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd status test-service'",
-            user="root"
+            user="root",
         )
         assert result.exit_code == 0
         assert b"test-service" in result.output
 
         # Verify systemd files exist
         result = sysd_container.exec_run(
-            "find /etc/systemd/system -name '*test-service*'",
-            user="root"
+            "find /etc/systemd/system -name '*test-service*'", user="root"
         )
         assert result.exit_code == 0
         assert b"sysd-test-service.service" in result.output
@@ -155,15 +153,14 @@ class TestSysdIntegration:
         # Remove service
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd remove test-service'",
-            user="root"
+            user="root",
         )
         assert result.exit_code == 0
         assert b"Removed service 'test-service'" in result.output
 
         # Verify files are removed
         result = sysd_container.exec_run(
-            "find /etc/systemd/system -name '*test-service*'",
-            user="root"
+            "find /etc/systemd/system -name '*test-service*'", user="root"
         )
         assert result.exit_code == 0
         assert result.output.strip() == b""
@@ -171,7 +168,7 @@ class TestSysdIntegration:
         # List should be empty
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd list'",
-            user="root"
+            user="root",
         )
         assert result.exit_code == 0
         assert b"No managed services found" in result.output
@@ -181,19 +178,18 @@ class TestSysdIntegration:
         # Add a service
         sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && "
-            "python -m sysd add file-test \"python -m test\" "
-            "--schedule=\"hourly\" --description=\"File Test Service\"'",
-            user="root"
+            'python -m sysd add file-test "python -m test" '
+            '--schedule="hourly" --description="File Test Service"\'',
+            user="root",
         )
 
         # Check service file content
         result = sysd_container.exec_run(
-            "cat /etc/systemd/system/sysd-file-test.service",
-            user="root"
+            "cat /etc/systemd/system/sysd-file-test.service", user="root"
         )
         assert result.exit_code == 0
         content = result.output.decode()
-        
+
         # Verify key components
         assert "[Unit]" in content
         assert "Description=File Test Service" in content
@@ -206,12 +202,11 @@ class TestSysdIntegration:
 
         # Check timer file content
         result = sysd_container.exec_run(
-            "cat /etc/systemd/system/sysd-file-test.timer",
-            user="root"
+            "cat /etc/systemd/system/sysd-file-test.timer", user="root"
         )
         assert result.exit_code == 0
         content = result.output.decode()
-        
+
         assert "[Unit]" in content
         assert "Description=Timer for File Test Service" in content
         assert "[Timer]" in content
@@ -223,7 +218,7 @@ class TestSysdIntegration:
         # Cleanup
         sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd remove file-test'",
-            user="root"
+            user="root",
         )
 
     def test_multiple_services(self, sysd_container):
@@ -238,19 +233,19 @@ class TestSysdIntegration:
         for name, command, schedule in services:
             result = sysd_container.exec_run(
                 f"su - testuser -c 'cd /home/testuser/sysd && "
-                f"python -m sysd add {name} \"{command}\" "
-                f"--schedule=\"{schedule}\" --description=\"{name} service\"'",
-                user="root"
+                f'python -m sysd add {name} "{command}" '
+                f'--schedule="{schedule}" --description="{name} service"\'',
+                user="root",
             )
             assert result.exit_code == 0
 
         # List all services
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd list'",
-            user="root"
+            user="root",
         )
         assert result.exit_code == 0
-        
+
         for name, _, schedule in services:
             assert name.encode() in result.output
             assert schedule.encode() in result.output
@@ -259,24 +254,24 @@ class TestSysdIntegration:
         for name, _, _ in services:
             result = sysd_container.exec_run(
                 f"su - testuser -c 'cd /home/testuser/sysd && python -m sysd remove {name}'",
-                user="root"
+                user="root",
             )
             assert result.exit_code == 0
 
     def test_error_handling(self, sysd_container):
         """Test error handling scenarios."""
         # Try to remove non-existent service
-        result = sysd_container.exec_run(
+        sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd remove nonexistent'",
-            user="root"
+            user="root",
         )
         # Should handle gracefully (exact behavior depends on implementation)
-        
+
         # Try to add service with invalid name
-        result = sysd_container.exec_run(
+        sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && "
-            "python -m sysd add \"invalid name\" \"echo test\" --schedule=\"*/15\"'",
-            user="root"
+            'python -m sysd add "invalid name" "echo test" --schedule="*/15"\'',
+            user="root",
         )
         # Should handle invalid service names gracefully
 
@@ -291,20 +286,21 @@ class TestSysdIntegration:
         ]
 
         for input_schedule, expected_calendar in schedule_tests:
-            service_name = f"sched-test-{input_schedule.replace('*/', 'every').replace('@', 'at')}"
-            
+            service_name = (
+                f"sched-test-{input_schedule.replace('*/', 'every').replace('@', 'at')}"
+            )
+
             # Add service
             sysd_container.exec_run(
                 f"su - testuser -c 'cd /home/testuser/sysd && "
-                f"python -m sysd add {service_name} \"echo test\" "
-                f"--schedule=\"{input_schedule}\" --description=\"Schedule test\"'",
-                user="root"
+                f'python -m sysd add {service_name} "echo test" '
+                f'--schedule="{input_schedule}" --description="Schedule test"\'',
+                user="root",
             )
 
             # Check timer file
             result = sysd_container.exec_run(
-                f"cat /etc/systemd/system/sysd-{service_name}.timer",
-                user="root"
+                f"cat /etc/systemd/system/sysd-{service_name}.timer", user="root"
             )
             assert result.exit_code == 0
             content = result.output.decode()
@@ -313,7 +309,7 @@ class TestSysdIntegration:
             # Cleanup
             sysd_container.exec_run(
                 f"su - testuser -c 'cd /home/testuser/sysd && python -m sysd remove {service_name}'",
-                user="root"
+                user="root",
             )
 
 
@@ -328,19 +324,19 @@ class TestSysdPerformance:
         for i in range(num_services):
             result = sysd_container.exec_run(
                 f"su - testuser -c 'cd /home/testuser/sysd && "
-                f"python -m sysd add bulk-{i} \"echo {i}\" "
-                f"--schedule=\"*/{5+i}\" --description=\"Bulk service {i}\"'",
-                user="root"
+                f'python -m sysd add bulk-{i} "echo {i}" '
+                f'--schedule="*/{5 + i}" --description="Bulk service {i}"\'',
+                user="root",
             )
             assert result.exit_code == 0
 
         # List all services
         result = sysd_container.exec_run(
             "su - testuser -c 'cd /home/testuser/sysd && python -m sysd list'",
-            user="root"
+            user="root",
         )
         assert result.exit_code == 0
-        
+
         # Should show all services
         for i in range(num_services):
             assert f"bulk-{i}".encode() in result.output
@@ -349,7 +345,7 @@ class TestSysdPerformance:
         for i in range(num_services):
             result = sysd_container.exec_run(
                 f"su - testuser -c 'cd /home/testuser/sysd && python -m sysd remove bulk-{i}'",
-                user="root"
+                user="root",
             )
             assert result.exit_code == 0
 
